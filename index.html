@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6f8">
+  <title>Theo dõi mục tiêu tiền</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17221f;
+      --muted: #73807b;
+      --line: #e8ece9;
+      --paper: #ffffff;
+      --canvas: #f4f6f5;
+      --green: #1f7657;
+      --green-dark: #155c43;
+      --green-soft: #eaf5ef;
+      --lime: #c7ec89;
+      --gold: #c48a38;
+      --red: #ba514a;
+      --shadow: 0 12px 36px rgba(26, 49, 39, .055);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 15px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .page { max-width: 1250px; margin: 0 auto; padding: 30px 28px 54px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--green); color: #fff; box-shadow: 0 7px 18px #1f76572a; }
+    .brand-mark svg { width: 22px; height: 22px; }
+    .brand-name { font-size: 14px; font-weight: 760; letter-spacing: .01em; }
+    .brand-sub { margin-top: 1px; font-size: 12px; color: var(--muted); }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+    .local-pill { display: inline-flex; align-items: center; gap: 7px; color: #60736a; background: #e9efeb; border-radius: 999px; padding: 8px 11px; font-size: 12px; font-weight: 600; }
+    .local-pill::before { content: ""; width: 7px; height: 7px; background: #50a779; border-radius: 50%; }
+    .button { border: 1px solid var(--line); border-radius: 11px; padding: 9px 13px; font-weight: 650; color: var(--ink); background: white; transition: .15s ease; }
+    .button:hover { border-color: #bdcbc3; transform: translateY(-1px); }
+    .button.primary { color: white; background: var(--green); border-color: var(--green); }
+    .button.primary:hover { background: var(--green-dark); }
+    .button.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 7px 9px; }
+    .button.ghost:hover { color: var(--red); background: #fff4f2; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 318px; align-items: start; gap: 20px; }
+    .main-column, .side-column { display: grid; gap: 18px; min-width: 0; }
+    .card { background: var(--paper); border: 1px solid rgba(223, 231, 226, .8); border-radius: 18px; box-shadow: var(--shadow); }
+    .goal-card { overflow: hidden; color: white; background: #1b3b30; border: 0; padding: 25px 28px 23px; position: relative; }
+    .goal-card::after { content: ""; pointer-events: none; position: absolute; width: 290px; height: 290px; right: -80px; top: -170px; border: 1px solid rgba(199,236,137,.18); border-radius: 50%; box-shadow: 0 0 0 36px rgba(199,236,137,.035), 0 0 0 74px rgba(199,236,137,.025); }
+    .goal-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; position: relative; z-index: 1; }
+    .eyebrow { text-transform: uppercase; letter-spacing: .11em; font-size: 10px; font-weight: 750; color: #b9d6c7; }
+    .goal-title { font-size: 20px; font-weight: 700; margin-top: 6px; }
+    .goal-amount { white-space: nowrap; text-align: right; color: #e5f3eb; font-size: 13px; }
+    .goal-amount strong { display: block; color: var(--lime); font-size: 22px; letter-spacing: -.03em; }
+    .progress-wrap { margin-top: 24px; position: relative; z-index: 1; }
+    .progress-meta { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 9px; color: #c3d6cc; font-size: 12px; }
+    .progress-track { height: 10px; width: 100%; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.15); }
+    .progress-fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #83d5a7, var(--lime)); transition: width .35s ease; }
+    .goal-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 13px; color: #d4e4da; font-size: 12px; position: relative; z-index: 1; }
+    .goal-foot strong { color: white; font-size: 13px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .metric { padding: 17px 18px; min-height: 106px; }
+    .metric-label { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .metric-value { margin-top: 8px; font-size: clamp(18px, 2vw, 24px); font-weight: 730; letter-spacing: -.04em; overflow-wrap: anywhere; }
+    .metric-note { color: #98a19d; font-size: 11px; margin-top: 3px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 19px 21px 0; }
+    .section-title { font-size: 15px; font-weight: 720; margin: 0; }
+    .section-hint { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .entry-card { padding-bottom: 20px; }
+    .entry-form { padding: 17px 21px 0; display: grid; grid-template-columns: 1fr 1.15fr 1.3fr auto; align-items: end; gap: 11px; }
+    .field { min-width: 0; }
+    .field label { display: block; color: #68756f; font-size: 11px; font-weight: 680; margin: 0 0 6px 1px; }
+    .field input { display: block; width: 100%; height: 42px; border: 1px solid #e2e8e4; border-radius: 10px; padding: 0 11px; color: var(--ink); background: #fbfcfb; outline: none; }
+    .field input:focus { border-color: #72a98c; box-shadow: 0 0 0 3px #1f765715; background: #fff; }
+    .entry-form .button { height: 42px; white-space: nowrap; }
+    .form-message { min-height: 17px; padding: 7px 21px 0; color: var(--muted); font-size: 11px; }
+    .form-message.error { color: var(--red); }
+    .chart-card { padding-bottom: 18px; }
+    .chart-summary { font-size: 11px; color: #96a09b; }
+    .chart { display: flex; align-items: end; gap: 8px; min-height: 139px; padding: 16px 20px 0; }
+    .chart-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 7px; height: 118px; justify-content: end; }
+    .bar-slot { height: 86px; width: min(100%, 28px); position: relative; }
+    .bar-slot::after { content: ""; position: absolute; top: 50%; left: -3px; right: -3px; height: 1px; background: #e6ece8; }
+    .bar { position: absolute; left: 0; width: 100%; border-radius: 5px 5px 2px 2px; background: #a4d5b5; transition: height .25s ease; }
+    .bar.negative { background: #e3a19a; border-radius: 2px 2px 5px 5px; }
+    .chart-col.today .bar { background: var(--green); }
+    .chart-col.today .bar.negative { background: var(--red); }
+    .chart-label { color: #8c9891; font-size: 10px; white-space: nowrap; }
+    .chart-empty { display: grid; place-items: center; height: 112px; width: 100%; color: #98a29d; font-size: 12px; }
+    .history-card { overflow: hidden; }
+    .history-head { padding-bottom: 14px; }
+    .history-count { font-size: 11px; color: #91a098; }
+    .table-scroll { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 480px; }
+    thead { background: #f8faf8; }
+    th { padding: 10px 20px; color: #89958e; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; text-align: left; }
+    th:last-child, td:last-child { text-align: right; }
+    td { padding: 12px 20px; border-top: 1px solid #eff2f0; font-size: 12px; }
+    td.amount { font-weight: 700; color: #285b43; white-space: nowrap; }
+    td.date { white-space: nowrap; font-weight: 620; }
+    td.note { color: #7c8982; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row-actions { display: inline-flex; gap: 3px; }
+    .icon-button { display: inline-grid; place-items: center; border: 0; background: transparent; color: #839089; width: 28px; height: 28px; border-radius: 8px; }
+    .icon-button:hover { background: #edf4ef; color: var(--green); }
+    .icon-button.delete:hover { background: #fff0ee; color: var(--red); }
+    .icon-button svg { width: 15px; height: 15px; }
+    .empty-history { padding: 27px 20px 30px; text-align: center; color: #8b9790; font-size: 12px; }
+    .settings-card { padding: 20px; }
+    .settings-card .section-head { padding: 0; margin-bottom: 16px; }
+    .settings-form { display: grid; gap: 13px; }
+    .settings-form .field input { background: #fff; }
+    .settings-form .button { margin-top: 2px; width: 100%; }
+    .save-state { min-height: 15px; color: #8b9891; text-align: center; font-size: 10px; }
+    .forecast-card { padding: 20px; }
+    .forecast-card .section-head { padding: 0; }
+    .chance-wrap { display: flex; align-items: center; gap: 15px; margin: 20px 0 17px; }
+    .chance-ring { flex: 0 0 78px; width: 78px; height: 78px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--green) 0deg, #eaf0ec 0deg); position: relative; }
+    .chance-ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: white; }
+    .chance-number { position: relative; z-index: 1; font-size: 19px; font-weight: 750; letter-spacing: -.04em; }
+    .chance-copy { font-size: 12px; color: #718078; }
+    .chance-copy strong { display: block; color: var(--ink); font-size: 13px; margin-bottom: 3px; }
+    .forecast-detail { border-top: 1px solid var(--line); padding-top: 13px; display: grid; gap: 10px; }
+    .detail-row { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; }
+    .detail-row span { color: #829089; }
+    .detail-row strong { font-size: 11px; text-align: right; }
+    .forecast-footnote { margin: 13px 0 0; color: #9aa49f; font-size: 10px; line-height: 1.5; }
+    .mini-tip { background: #f6f8f6; border: 1px solid #edf1ee; border-radius: 12px; padding: 12px 13px; color: #718078; font-size: 11px; line-height: 1.55; }
+    .mini-tip strong { display: block; color: #42584c; margin-bottom: 3px; font-size: 11px; }
+    .toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 12px); opacity: 0; pointer-events: none; padding: 10px 14px; color: #fff; background: #24372e; border-radius: 10px; box-shadow: 0 8px 25px #10281c35; font-size: 12px; transition: .2s ease; z-index: 10; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr) 285px; gap: 14px; } .page { padding-inline: 18px; } .entry-form { grid-template-columns: 1fr 1.1fr; } .entry-form .button { width: 100%; } }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } .side-column { grid-row: 1; grid-template-columns: 1fr 1fr; } .page { padding: 20px 14px 36px; } .topbar { margin-bottom: 17px; } }
+    @media (max-width: 520px) { .side-column { grid-template-columns: 1fr; } .local-pill { display: none; } .goal-card { padding: 21px 19px; } .goal-top { gap: 8px; } .goal-title { font-size: 17px; } .goal-amount strong { font-size: 18px; } .goal-foot { align-items: flex-start; gap: 8px; flex-direction: column; } .metric-grid { gap: 8px; } .metric { min-height: 96px; padding: 14px 12px; } .metric-value { font-size: 17px; } .metric-label { font-size: 10px; } .section-head { padding-inline: 16px; } .entry-form { padding-inline: 16px; gap: 9px; } .form-message { padding-inline: 16px; } .chart { padding-inline: 13px; gap: 5px; } .chart-label { font-size: 9px; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 17.5 9.2 12l3.5 3.3L20 7.5M14.5 7.5H20v5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><div class="brand-name">Mục tiêu của tôi</div><div class="brand-sub">Theo dõi thu nhập mỗi ngày</div></div>
+      </div>
+      <div class="top-actions">
+        <span class="local-pill">Dữ liệu lưu trên thiết bị</span>
+        <button class="button" id="exportBtn" type="button" title="Tải nhật ký về dạng CSV">Tải dữ liệu</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main class="main-column">
+        <section class="card goal-card" aria-label="Tiến độ mục tiêu">
+          <div class="goal-top">
+            <div><div class="eyebrow">Mục tiêu tài chính</div><div class="goal-title" id="goalTitleDisplay">Mục tiêu của tôi</div></div>
+            <div class="goal-amount"><strong id="goalTargetDisplay">0 ₫</strong>mục tiêu cần đạt</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-meta"><span id="progressText">0% hoàn thành</span><span id="remainingText">Còn 0 ₫</span></div>
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          </div>
+          <div class="goal-foot"><span>Số dư hiện tại <strong id="totalDisplay">0 ₫</strong></span><span id="goalDateDisplay">Chưa đặt hạn chót</span></div>
+        </section>
+
+        <section class="metric-grid" aria-label="Tổng quan">
+          <div class="card metric"><div class="metric-label">Số dư tính vào mục tiêu</div><div class="metric-value" id="earnedMetric">0 ₫</div><div class="metric-note">Gồm số dư ban đầu và các khoản thu / chi</div></div>
+          <div class="card metric"><div class="metric-label">Trung bình mỗi ngày</div><div class="metric-value" id="averageMetric">0 ₫</div><div class="metric-note" id="averageNote">Trong 30 ngày gần nhất</div></div>
+          <div class="card metric"><div class="metric-label">Số ngày ước tính còn lại</div><div class="metric-value" id="daysMetric">—</div><div class="metric-note" id="finishNote">Dựa trên mức trung bình hiện tại</div></div>
+        </section>
+
+        <section class="card entry-card">
+          <div class="section-head"><div><h2 class="section-title" id="entryTitle">Ghi khoản thu / chi</h2><div class="section-hint">Số dương là tiền kiếm được; số âm là chi phí hoặc tiền bị mất.</div></div></div>
+          <form class="entry-form" id="entryForm">
+            <div class="field"><label for="entryDate">Ngày</label><input id="entryDate" type="date" required></div>
+            <div class="field"><label for="entryAmount">Số tiền (+ / −)</label><input id="entryAmount" type="number" step="1000" placeholder="500000 hoặc -1500000" required></div>
+            <div class="field"><label for="entryNote">Ghi chú <span style="font-weight:400;color:#a3ada7">(không bắt buộc)</span></label><input id="entryNote" type="text" maxlength="70" placeholder="Nguồn thu, công việc…"></div>
+            <button class="button primary" type="submit" id="saveEntryBtn">Lưu ngày</button>
+          </form>
+          <div class="form-message" id="formMessage" aria-live="polite"></div>
+        </section>
+
+        <section class="card chart-card">
+          <div class="section-head"><div><h2 class="section-title">Khoản thu / chi gần đây</h2><div class="section-hint">Số dương hướng lên, số âm hướng xuống trong 14 ngày qua</div></div><div class="chart-summary" id="chartSummary"></div></div>
+          <div class="chart" id="chart" role="img" aria-label="Biểu đồ thu nhập 14 ngày gần nhất"></div>
+        </section>
+
+        <section class="card history-card">
+          <div class="section-head history-head"><div><h2 class="section-title">Nhật ký thu nhập</h2><div class="section-hint">Các ngày đã ghi nhận</div></div><span class="history-count" id="historyCount">0 ngày</span></div>
+          <div id="historyContent"></div>
+        </section>
+      </main>
+
+      <aside class="side-column">
+        <section class="card settings-card">
+          <div class="section-head"><div><h2 class="section-title">Thiết lập mục tiêu</h2><div class="section-hint">Bạn có thể thay đổi bất cứ lúc nào.</div></div></div>
+          <form class="settings-form" id="settingsForm">
+            <div class="field"><label for="goalName">Tên mục tiêu</label><input id="goalName" type="text" maxlength="40" placeholder="Ví dụ: Quỹ dự phòng"></div>
+            <div class="field"><label for="goalTarget">Số tiền mục tiêu (₫)</label><input id="goalTarget" type="number" min="1" step="100000" placeholder="Ví dụ: 50000000"></div>
+            <div class="field"><label for="startingBalance">Số tiền đã có ban đầu (₫)</label><input id="startingBalance" type="number" min="0" step="100000" placeholder="0"></div>
+            <div class="field"><label for="deadline">Hạn chót (không bắt buộc)</label><input id="deadline" type="date"></div>
+            <div class="field"><label for="trackingStart">Bắt đầu theo dõi từ ngày</label><input id="trackingStart" type="date"></div>
+            <button class="button primary" type="submit">Lưu thiết lập</button>
+            <div class="save-state" id="saveState" aria-live="polite">Thiết lập chỉ lưu trên trình duyệt này.</div>
+          </form>
+        </section>
+
+        <section class="card forecast-card">
+          <div class="section-head"><div><h2 class="section-title">Dự báo hoàn thành</h2><div class="section-hint" id="forecastDeadline">Theo hạn chót bạn đặt</div></div></div>
+          <div class="chance-wrap">
+            <div class="chance-ring" id="chanceRing"><span class="chance-number" id="chanceNumber">—</span></div>
+            <div class="chance-copy"><strong id="chanceLabel">Chưa đủ dữ liệu</strong><span id="chanceCaption">Hãy ghi thu nhập mỗi ngày để xem dự báo.</span></div>
+          </div>
+          <div class="forecast-detail">
+            <div class="detail-row"><span>Tiến độ cần mỗi ngày</span><strong id="requiredPace">—</strong></div>
+            <div class="detail-row"><span>Dự kiến đạt mục tiêu</span><strong id="expectedDate">—</strong></div>
+            <div class="detail-row"><span>Số ngày đã theo dõi</span><strong id="trackedDays">0 ngày</strong></div>
+          </div>
+          <p class="forecast-footnote">Xác suất được mô phỏng từ thu nhập từng ngày trong tối đa 30 ngày gần nhất (bao gồm ngày không có thu nhập). Chỉ là ước tính tham khảo, giả định các ngày tới tương tự giai đoạn gần đây.</p>
+        </section>
+
+        <div class="mini-tip"><strong>Ghi khoản chi</strong>Nhập số âm, ví dụ −1.500.000 ₫ khi phải sửa xe. Nhập 0 ₫ vào ngày không phát sinh để dự báo sát hơn.</div>
+      </aside>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'daily-income-goal-tracker-v1';
+      const DAY_MS = 86400000;
+      const $ = (id) => document.getElementById(id);
+      const today = localDateString(new Date());
+      const defaultDeadline = addDays(today, 30);
+      const money = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+      const compactMoney = new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 });
+      const number = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+      let state = loadState();
+      let editingDate = null;
+      let toastTimer = null;
+
+      function localDateString(d) {
+        const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+      function parseDate(value) {
+        if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+        const [y, m, d] = value.split('-').map(Number);
+        const date = new Date(y, m - 1, d);
+        return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+      }
+      function addDays(value, amount) { const d = parseDate(value) || new Date(); d.setDate(d.getDate() + amount); return localDateString(d); }
+      function dayDiff(from, to) {
+        const a = parseDate(from); const b = parseDate(to);
+        return a && b ? Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / DAY_MS) : 0;
+      }
+      function formatDate(value, options = { day: 'numeric', month: 'short', year: 'numeric' }) {
+        const d = parseDate(value); return d ? new Intl.DateTimeFormat('vi-VN', options).format(d) : '—';
+      }
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+      }
+      function freshState() {
+        return { goal: { name: '', target: 0, startingBalance: 0, deadline: defaultDeadline, trackingStart: today }, entries: [] };
+      }
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return freshState();
+          const saved = JSON.parse(raw);
+          const goal = saved.goal || {};
+          const entries = Array.isArray(saved.entries) ? saved.entries : [];
+          return {
+            goal: {
+              name: typeof goal.name === 'string' ? goal.name : '',
+              target: Math.max(0, validAmount(goal.target)),
+              startingBalance: Math.max(0, validAmount(goal.startingBalance)),
+              deadline: parseDate(goal.deadline) ? goal.deadline : defaultDeadline,
+              trackingStart: parseDate(goal.trackingStart) ? goal.trackingStart : today
+            },
+            entries: entries.filter(e => parseDate(e.date)).map(e => ({ date: e.date, amount: validAmount(e.amount), note: typeof e.note === 'string' ? e.note.slice(0, 70) : '' }))
+          };
+        } catch { return freshState(); }
+      }
+      function validAmount(value) { const n = Number(value); return Number.isFinite(n) ? n : 0; }
+      function saveState() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); $('saveState').textContent = 'Đã lưu trên trình duyệt này'; }
+        catch { $('saveState').textContent = 'Không thể lưu — hãy tải dữ liệu về để sao lưu.'; }
+      }
+      function entriesByDate() {
+        const map = new Map();
+        state.entries.forEach(e => map.set(e.date, e));
+        return map;
+      }
+      function totalSaved() { return state.goal.startingBalance + state.entries.reduce((sum, e) => sum + validAmount(e.amount), 0); }
+      function dailyValues(days = 30) {
+        const start = state.goal.trackingStart || today;
+        const elapsed = Math.max(1, dayDiff(start, today) + 1);
+        const count = Math.min(days, elapsed);
+        const first = addDays(today, -(count - 1));
+        const map = entriesByDate();
+        const values = [];
+        for (let i = 0; i < count; i++) {
+          const date = addDays(first, i);
+          values.push(map.has(date) ? validAmount(map.get(date).amount) : 0);
+        }
+        return { values, first, count };
+      }
+      function estimateProbability(remaining, horizon, samples) {
+        if (remaining <= 0) return 1;
+        if (!samples.length || horizon <= 0) return 0;
+        let success = 0;
+        const rounds = 5000;
+        for (let r = 0; r < rounds; r++) {
+          let sum = 0;
+          for (let d = 0; d < horizon && sum < remaining; d++) sum += samples[Math.floor(Math.random() * samples.length)];
+          if (sum >= remaining) success++;
+        }
+        return success / rounds;
+      }
+      function render() {
+        const goal = state.goal;
+        const total = totalSaved();
+        const target = validAmount(goal.target);
+        const remaining = Math.max(0, target - total);
+        const pct = target > 0 ? Math.max(0, Math.min(100, (total / target) * 100)) : 0;
+        const period = dailyValues(30);
+        const dailyAverage = period.values.reduce((a, b) => a + b, 0) / Math.max(1, period.values.length);
+        const entries = [...state.entries].sort((a, b) => b.date.localeCompare(a.date));
+        const daysNeeded = remaining <= 0 ? 0 : dailyAverage > 0 ? Math.ceil(remaining / dailyAverage) : null;
+        const expectedDate = daysNeeded === null ? null : addDays(today, daysNeeded);
+        const deadline = parseDate(goal.deadline) ? goal.deadline : null;
+        const horizon = deadline ? Math.max(0, dayDiff(today, deadline)) : 0;
+        const probability = estimateProbability(remaining, horizon, period.values);
+
+        $('goalTitleDisplay').textContent = goal.name.trim() || 'Mục tiêu của tôi';
+        $('goalTargetDisplay').textContent = target ? money.format(target) : 'Chưa đặt';
+        $('progressText').textContent = `${number.format(pct)}% hoàn thành`;
+        $('remainingText').textContent = remaining > 0 ? `Còn ${money.format(remaining)}` : target > 0 ? 'Đã đạt mục tiêu' : 'Còn 0 ₫';
+        $('progressFill').style.width = `${pct}%`;
+        $('totalDisplay').textContent = money.format(total);
+        $('goalDateDisplay').textContent = deadline ? `Hạn chót ${formatDate(deadline)}` : 'Chưa đặt hạn chót';
+        $('earnedMetric').textContent = money.format(total);
+        $('averageMetric').textContent = money.format(Math.round(dailyAverage));
+        $('averageNote').textContent = `Trung bình ${period.count} ngày gần đây`;
+        $('daysMetric').textContent = remaining <= 0 && target > 0 ? '0 ngày' : daysNeeded === null ? '—' : `${number.format(daysNeeded)} ngày`;
+        $('finishNote').textContent = daysNeeded === null ? 'Cần có thu nhập để ước tính' : expectedDate ? `Dự kiến ${formatDate(expectedDate)}` : 'Đã hoàn thành mục tiêu';
+        $('forecastDeadline').textContent = deadline ? `Trước ${formatDate(deadline)}` : 'Hãy đặt hạn chót để xem xác suất';
+        $('requiredPace').textContent = target <= 0 ? 'Đặt số tiền mục tiêu' : remaining <= 0 ? 'Đã hoàn thành' : horizon > 0 ? `${money.format(Math.ceil(remaining / horizon))} / ngày` : 'Hạn chót đã qua';
+        $('expectedDate').textContent = remaining <= 0 && target > 0 ? 'Đã hoàn thành' : expectedDate ? formatDate(expectedDate) : 'Chưa thể ước tính';
+        $('trackedDays').textContent = `${period.count} ngày`;
+        $('chanceRing').style.background = `conic-gradient(var(--green) ${Math.round(probability * 360)}deg, #eaf0ec 0deg)`;
+        const enough = period.count >= 7;
+        $('chanceNumber').textContent = target <= 0 || !deadline ? '—' : `${Math.round(probability * 100)}%`;
+        $('chanceLabel').textContent = remaining <= 0 && target > 0 ? 'Mục tiêu đã đạt' : enough ? 'Khả năng trước hạn' : 'Ước tính ban đầu';
+        $('chanceCaption').textContent = remaining <= 0 && target > 0 ? 'Chúc mừng bạn đã hoàn thành!' : target <= 0 ? 'Nhập số tiền mục tiêu để bắt đầu.' : !deadline ? 'Đặt hạn chót để tính xác suất.' : enough ? `Còn ${number.format(horizon)} ngày đến hạn.` : 'Độ tin cậy sẽ tốt hơn khi có thêm dữ liệu.';
+        if (target <= 0 || !deadline) $('chanceNumber').textContent = '—';
+        renderChart();
+        renderHistory(entries);
+        fillSettings();
+      }
+      function fillSettings() {
+        $('goalName').value = state.goal.name;
+        $('goalTarget').value = state.goal.target || '';
+        $('startingBalance').value = state.goal.startingBalance || '';
+        $('deadline').value = state.goal.deadline || '';
+        $('trackingStart').value = state.goal.trackingStart || today;
+      }
+      function renderChart() {
+        const chart = $('chart');
+        const data = [];
+        const map = entriesByDate();
+        for (let i = 13; i >= 0; i--) {
+          const date = addDays(today, -i);
+          data.push({ date, amount: map.has(date) ? validAmount(map.get(date).amount) : 0 });
+        }
+        const max = Math.max(1, ...data.map(d => Math.abs(d.amount)));
+        $('chartSummary').textContent = data.reduce((sum, d) => sum + d.amount, 0) ? `Tổng ${money.format(data.reduce((sum, d) => sum + d.amount, 0))}` : '';
+        if (!state.entries.length) {
+          chart.innerHTML = '<div class="chart-empty">Thu nhập đã ghi sẽ xuất hiện ở đây.</div>';
+          return;
+        }
+        chart.innerHTML = data.map(d => {
+          const pct = d.amount === 0 ? 0 : Math.max(5, (Math.abs(d.amount) / max) * 46);
+          const label = formatDate(d.date, { day: 'numeric', month: 'numeric' });
+          const direction = d.amount < 0 ? 'negative' : '';
+          const position = d.amount < 0 ? `top:50%;height:${pct}%` : `bottom:50%;height:${pct}%`;
+          return `<div class="chart-col ${d.date === today ? 'today' : ''}" title="${escapeHtml(formatDate(d.date))}: ${escapeHtml(money.format(d.amount))}"><div class="bar-slot"><div class="bar ${direction}" style="${position}"></div></div><div class="chart-label">${escapeHtml(label)}</div></div>`;
+        }).join('');
+      }
+      function renderHistory(entries) {
+        $('historyCount').textContent = `${entries.length} ${entries.length === 1 ? 'ngày' : 'ngày'}`;
+        const root = $('historyContent');
+        if (!entries.length) {
+          root.innerHTML = '<div class="empty-history">Chưa có dữ liệu. Hãy ghi khoản thu nhập đầu tiên của bạn.</div>';
+          return;
+        }
+        const editSvg = '<svg viewBox="0 0 24 24" fill="none"><path d="m14 5 5 5M4 20l4.2-.9L19 8.3a2.1 2.1 0 0 0-3-3L5.2 16.1 4 20Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        const deleteSvg = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        root.innerHTML = `<div class="table-scroll"><table><thead><tr><th>Ngày</th><th>Thu / chi</th><th>Ghi chú</th><th></th></tr></thead><tbody>${entries.map(e => `<tr><td class="date">${escapeHtml(formatDate(e.date))}</td><td class="amount" style="color:${e.amount < 0 ? 'var(--red)' : 'var(--green-dark)'}">${escapeHtml(money.format(e.amount))}</td><td class="note" title="${escapeHtml(e.note)}">${escapeHtml(e.note || '—')}</td><td><span class="row-actions"><button class="icon-button" type="button" data-edit="${escapeHtml(e.date)}" aria-label="Sửa ${escapeHtml(e.date)}" title="Sửa">${editSvg}</button><button class="icon-button delete" type="button" data-delete="${escapeHtml(e.date)}" aria-label="Xóa ${escapeHtml(e.date)}" title="Xóa">${deleteSvg}</button></span></td></tr>`).join('')}</tbody></table></div>`;
+      }
+      function showToast(message) {
+        $('toast').textContent = message; $('toast').classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2200);
+      }
+      function resetEntryForm() {
+        editingDate = null; $('entryForm').reset(); $('entryDate').value = today;
+        $('entryTitle').textContent = 'Ghi khoản thu / chi'; $('saveEntryBtn').textContent = 'Lưu ngày'; $('formMessage').textContent = ''; $('formMessage').classList.remove('error');
+      }
+      $('entryDate').value = today;
+      fillSettings();
+      render();
+
+      $('settingsForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const targetValue = Number($('goalTarget').value);
+        const startValue = Number($('startingBalance').value || 0);
+        if ($('goalTarget').value && (!Number.isFinite(targetValue) || targetValue < 1)) { $('saveState').textContent = 'Số tiền mục tiêu phải lớn hơn 0.'; return; }
+        if (!Number.isFinite(startValue) || startValue < 0) { $('saveState').textContent = 'Số tiền ban đầu không hợp lệ.'; return; }
+        const tracking = parseDate($('trackingStart').value) ? $('trackingStart').value : today;
+        state.goal = {
+          name: $('goalName').value.trim().slice(0, 40),
+          target: validAmount(targetValue),
+          startingBalance: validAmount(startValue),
+          deadline: parseDate($('deadline').value) ? $('deadline').value : '',
+          trackingStart: tracking
+        };
+        saveState(); render(); showToast('Thiết lập mục tiêu đã được lưu.');
+      });
+
+      $('entryForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const date = $('entryDate').value;
+        const amount = Number($('entryAmount').value);
+        const note = $('entryNote').value.trim().slice(0, 70);
+        if (!parseDate(date)) { $('formMessage').textContent = 'Vui lòng chọn ngày hợp lệ.'; $('formMessage').classList.add('error'); return; }
+        if (!Number.isFinite(amount)) { $('formMessage').textContent = 'Vui lòng nhập một số tiền hợp lệ.'; $('formMessage').classList.add('error'); return; }
+        const old = entriesByDate();
+        const alreadyExists = old.has(date) && date !== editingDate;
+        state.entries = state.entries.filter(e => e.date !== date && e.date !== editingDate);
+        state.entries.push({ date, amount, note });
+        state.entries.sort((a, b) => a.date.localeCompare(b.date));
+        if (parseDate(state.goal.trackingStart) && date < state.goal.trackingStart) state.goal.trackingStart = date;
+        saveState(); resetEntryForm(); render(); showToast(alreadyExists ? 'Đã cập nhật thu nhập ngày này.' : 'Đã lưu thu nhập.');
+      });
+
+      $('historyContent').addEventListener('click', (event) => {
+        const edit = event.target.closest('[data-edit]');
+        const del = event.target.closest('[data-delete]');
+        if (edit) {
+          const item = state.entries.find(e => e.date === edit.dataset.edit);
+          if (!item) return;
+          editingDate = item.date; $('entryDate').value = item.date; $('entryAmount').value = item.amount; $('entryNote').value = item.note;
+          $('entryTitle').textContent = `Sửa khoản thu / chi ngày ${formatDate(item.date)}`; $('saveEntryBtn').textContent = 'Cập nhật';
+          $('formMessage').textContent = 'Chỉnh sửa thông tin rồi bấm Cập nhật.'; $('formMessage').classList.remove('error');
+          $('entryDate').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('entryAmount').focus();
+        } else if (del) {
+          const date = del.dataset.delete;
+          state.entries = state.entries.filter(e => e.date !== date);
+          saveState(); render(); showToast('Đã xóa ngày ghi nhận.');
+          if (editingDate === date) resetEntryForm();
+        }
+      });
+
+      $('exportBtn').addEventListener('click', () => {
+        const rows = [['Ngày', 'Thu nhập (VND)', 'Ghi chú'], ...[...state.entries].sort((a, b) => a.date.localeCompare(b.date)).map(e => [e.date, e.amount, e.note])];
+        const csv = '\ufeff' + rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `nhat-ky-thu-nhap-${today}.csv`; link.click(); URL.revokeObjectURL(link.href);
+      });
+    })();
+  </script>
+</body>
+</html>
